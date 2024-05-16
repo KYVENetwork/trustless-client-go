@@ -2,12 +2,11 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 type BundleSummary struct {
-	FromSlot   int64  `json:"from_slot,omitempty"`
 	MerkleRoot string `json:"merkle_root"`
-	ToSlot     int64  `json:"to_slot,omitempty"`
 }
 
 // FinalizedBundle is the bundle that is stored on the KYVE chain.
@@ -26,11 +25,6 @@ type FinalizedBundle struct {
 	ToKey             string `json:"to_key,omitempty"`
 }
 
-type FinalizedBundlesResponse = struct {
-	FinalizedBundles []FinalizedBundle `json:"finalized_bundles"`
-	Pagination       Pagination        `json:"pagination"`
-}
-
 type MerkleNode struct {
 	Hash string `json:"hash"`
 	Left bool   `json:"left"`
@@ -47,4 +41,13 @@ type TrustlessDataItem struct {
 	PoolId   int64           `json:"poolId"`
 	Proof    []MerkleNode    `json:"proof"`
 	Value    json.RawMessage `json:"value"`
+}
+
+type MerkleRootNotValidError struct {
+	Constructed string
+	OnChain     string
+}
+
+func (mrnv MerkleRootNotValidError) Error() string {
+	return fmt.Sprintf("mismatch: local Merkle root (%v) != chain Merkle root (%v)", mrnv.Constructed, mrnv.OnChain)
 }
