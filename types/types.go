@@ -6,9 +6,7 @@ import (
 )
 
 type BundleSummary struct {
-	FromSlot   int64  `json:"from_slot,omitempty"`
 	MerkleRoot string `json:"merkle_root"`
-	ToSlot     int64  `json:"to_slot,omitempty"`
 }
 
 // FinalizedBundle is the bundle that is stored on the KYVE chain.
@@ -25,11 +23,6 @@ type FinalizedBundle struct {
 	StorageId         string `json:"storage_id,omitempty"`
 	StorageProviderId string `json:"storage_provider_id,omitempty"`
 	ToKey             string `json:"to_key,omitempty"`
-}
-
-type FinalizedBundlesResponse = struct {
-	FinalizedBundles []FinalizedBundle `json:"finalized_bundles"`
-	Pagination       Pagination        `json:"pagination"`
 }
 
 type MerkleNode struct {
