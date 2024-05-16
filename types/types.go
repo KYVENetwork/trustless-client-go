@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 type BundleSummary struct {
@@ -47,4 +48,13 @@ type TrustlessDataItem struct {
 	PoolId   int64           `json:"poolId"`
 	Proof    []MerkleNode    `json:"proof"`
 	Value    json.RawMessage `json:"value"`
+}
+
+type MerkleRootNotValidError struct {
+	Constructed string
+	OnChain     string
+}
+
+func (mrnv MerkleRootNotValidError) Error() string {
+	return fmt.Sprintf("mismatch: local Merkle root (%v) != chain Merkle root (%v)", mrnv.Constructed, mrnv.OnChain)
 }

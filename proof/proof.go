@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
 	"github.com/KYVENetwork/trustless-client-go/types"
 	"github.com/KYVENetwork/trustless-client-go/utils"
 )
@@ -17,7 +18,7 @@ var (
 // Therefore, it regenerates the Merkle root with the provided Merkle nodes in order to
 // compare the locally computed hash with the one stored on-chain.
 // It returns true if the given Data Item is the actually validated one by KYVE and false if not.
-func DataItemInclusionProof(trustlessDataItem types.TrustlessDataItem, endpoint string) (bool, error) {
+func DataItemInclusionProof(trustlessDataItem types.TrustlessDataItem, endpoint string) error {
 	// 1. Check if Merkle leaf in proof matches hash of local data item
 	leafHash := sha256.Sum256(trustlessDataItem.Value)
 
@@ -25,7 +26,7 @@ func DataItemInclusionProof(trustlessDataItem types.TrustlessDataItem, endpoint 
 	for _, merkleNode := range trustlessDataItem.Proof {
 		nodeHash, err := hex.DecodeString(merkleNode.Hash)
 		if err != nil {
-			return false, fmt.Errorf("failed to decode Merkle node hash: %v", err)
+			return fmt.Errorf("failed to decode Merkle node hash: %v", err)
 		}
 
 		if merkleNode.Left {
@@ -46,19 +47,21 @@ func DataItemInclusionProof(trustlessDataItem types.TrustlessDataItem, endpoint 
 	bundle, err := utils.GetFinalizedBundle(restEndpoint, trustlessDataItem.PoolId, trustlessDataItem.BundleId)
 	if err != nil {
 		logger.Error().Str("err", err.Error()).Msg("Failed to get finalized bundle")
-		return false, err
+		return err
 	}
 
 	var bundleSummary *types.BundleSummary
 	if err = json.Unmarshal([]byte(bundle.BundleSummary), &bundleSummary); err != nil {
-		return false, fmt.Errorf("failed to unmarshal bundle summary: %v", err)
+		return fmt.Errorf("failed to unmarshal bundle summary: %v", err)
 	}
 
 	if bundleSummary.MerkleRoot != merkleRoot {
 		logger.Fatal().Msg("Mismatch: Local Merkle root != Chain Merkle root")
-		return false, fmt.Errorf("mismatch: local Merkle root (%v) != chain Merkle root (%v)", merkleRoot, bundleSummary.MerkleRoot)
+		return types.MerkleRootNotValidError{
+			OnChain:     bundleSummary.MerkleRoot,
+			Constructed: merkleRoot,
+		}
 	}
 
-	return true, nil
-
+	return nil
 }
