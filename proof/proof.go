@@ -48,21 +48,27 @@ func DataItemInclusionProof(dataItem []byte, proof *types.Proof, endpoint string
 		return fmt.Errorf("failed to unmarshal data item: %v", err)
 	}
 
-	constructedDataItem := map[string]interface{}{
-		"key":   proof.DataItemKey,
-		"value": decodedDataItem[proof.DataItemValueKey],
-	}
+	var dataItemBytes []byte
+	// if the data item is set, we have an original data item that needs to be constructed
+	// if it is not, we can just use the value from the decodedDataItem
+	if proof.DataItemKey != "" {
+		constructedDataItem := map[string]interface{}{}
+		constructedDataItem["key"] = proof.DataItemKey
+		constructedDataItem["value"] = decodedDataItem[proof.DataItemValueKey]
 
-	dataItemBytes, err := json.Marshal(constructedDataItem)
-	if err != nil {
-		return fmt.Errorf("failed to marshal constructed data item: %v", err)
+		dataItemBytes, err = json.Marshal(constructedDataItem)
+
+		if err != nil {
+			return fmt.Errorf("failed to marshal constructed data item: %v", err)
+		}
+
+	} else {
+		dataItemBytes = decodedDataItem[proof.DataItemValueKey]
 	}
 
 	// 1. Compute the Merkle root from the proof
 	leafHash := sha256.Sum256(dataItemBytes)
 	merkleRoot, err := GetMerkleRoot(proof, leafHash)
-
-	fmt.Println(hex.EncodeToString(leafHash[:]))
 
 	if err != nil {
 		return fmt.Errorf("failed to compute Merkle root: %v", err)
