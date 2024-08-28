@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -113,25 +114,39 @@ func GetChainRest(chainId, chainRest string) string {
 // returns the proof as a struct
 func DecodeProof(encodedProofString string) (*types.Proof, error) {
 
-	encodedProof, err := hex.DecodeString(encodedProofString)
+	encodedProof, err := base64.StdEncoding.DecodeString(encodedProofString)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(encodedProof) < 58 {
-		return nil, fmt.Errorf("encoded proof is too short")
 	}
 
 	proof := &types.Proof{}
 
 	proof.PoolId = int64(binary.BigEndian.Uint16(encodedProof[0:2]))
 	proof.BundleId = int64(binary.BigEndian.Uint64(encodedProof[2:10]))
-	// Convert the byte slice to a null-terminated string
-	proof.ChainId = string(bytes.TrimRight(encodedProof[10:26], "\x00"))
-	proof.DataItemKey = string(bytes.TrimRight(encodedProof[26:42], "\x00"))
-	proof.DataItemValueKey = string(bytes.TrimRight(encodedProof[42:58], "\x00"))
 
-	proofBytes := encodedProof[58:]
+	encodedProof = encodedProof[10:]
+	endIndex := bytes.IndexByte(encodedProof, 0)
+	if endIndex == -1 {
+		return nil, fmt.Errorf("invalid encoded proof, missing: chainId")
+	}
+	proof.ChainId = string(bytes.TrimRight(encodedProof[:endIndex], "\x00"))
+
+	encodedProof = encodedProof[endIndex+1:]
+	endIndexKey := bytes.IndexByte(encodedProof, 0)
+
+	if endIndexKey == -1 {
+		return nil, fmt.Errorf("invalid encoded proof, missing: dataItemkey")
+	}
+	proof.DataItemKey = string(bytes.TrimRight(encodedProof[:endIndexKey], "\x00"))
+
+	encodedProof = encodedProof[endIndexKey+1:]
+	endIndexValueKey := bytes.IndexByte(encodedProof, 0)
+	if endIndex == -1 {
+		return nil, fmt.Errorf("invalid encoded proof, missing: chainId")
+	}
+	proof.DataItemValueKey = string(bytes.TrimRight(encodedProof[:endIndexValueKey], "\x00"))
+
+	proofBytes := encodedProof[endIndexValueKey+1:]
 
 	for len(proofBytes) >= 33 {
 		merkleNode := types.MerkleNode{}

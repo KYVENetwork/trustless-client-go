@@ -1,4 +1,4 @@
-package trustlesspai
+package trustlessapi
 
 import (
 	"github.com/KYVENetwork/trustless-client-go/proof"
