@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -34,15 +33,6 @@ type Pagination struct {
 	NextKey []byte `json:"next_key"`
 }
 
-// TrustlessDataItem is the response type of the Trustless API.
-type TrustlessDataItem struct {
-	ChainId  string          `json:"chainId"`
-	BundleId int64           `json:"bundleId"`
-	PoolId   int64           `json:"poolId"`
-	Proof    []MerkleNode    `json:"proof"`
-	Value    json.RawMessage `json:"value"`
-}
-
 type MerkleRootNotValidError struct {
 	Constructed string
 	OnChain     string
@@ -50,4 +40,13 @@ type MerkleRootNotValidError struct {
 
 func (mrnv MerkleRootNotValidError) Error() string {
 	return fmt.Sprintf("mismatch: local Merkle root (%v) != chain Merkle root (%v)", mrnv.Constructed, mrnv.OnChain)
+}
+
+type Proof struct {
+	Hashes           []MerkleNode `json:"proof"`
+	BundleId         int64        `json:"bundleId"`
+	ChainId          string       `json:"chainId"`
+	PoolId           int64        `json:"poolId"`
+	DataItemKey      string       `json:"dataItemKey"`
+	DataItemValueKey string       `json:"dataItemValueKey"`
 }

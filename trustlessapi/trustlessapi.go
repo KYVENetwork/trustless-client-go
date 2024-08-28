@@ -1,10 +1,7 @@
-package trustlesspai
+package trustlessapi
 
 import (
-	"encoding/json"
-
 	"github.com/KYVENetwork/trustless-client-go/proof"
-	"github.com/KYVENetwork/trustless-client-go/types"
 	"github.com/KYVENetwork/trustless-client-go/utils"
 )
 
@@ -18,31 +15,31 @@ import (
 // NOTE: 	This function will only use the chainRest for mainnet pools. If the pool is on a testnet, it will use the official testnet endpoints
 func Get(url string, chainRest string) ([]byte, error) {
 
-	rawResponse, err := utils.GetFromUrl(url)
+	rawResponse, proofHex, err := utils.GetFromUrl(url)
 
 	if err != nil {
 		return []byte{}, err
 	}
 
-	var dataitem types.TrustlessDataItem
-	err = json.Unmarshal(rawResponse, &dataitem)
-
+	p, err := utils.DecodeProof(proofHex)
 	if err != nil {
 		return []byte{}, err
 	}
 
-	switch dataitem.ChainId {
+	switch p.ChainId {
+	case "kyve-1":
+		chainRest = utils.RestEndpointMainnet
 	case "kaon-1":
 		chainRest = utils.RestEndpointKaon
 	case "korellia-2":
 		chainRest = utils.RestEndpointKorellia
 	}
 
-	err = proof.DataItemInclusionProof(dataitem, chainRest)
+	err = proof.DataItemInclusionProof(rawResponse, p, chainRest)
 
 	if err != nil {
 		return []byte{}, err
 	}
 
-	return dataitem.Value, nil
+	return rawResponse, nil
 }
