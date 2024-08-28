@@ -99,7 +99,7 @@ func GetChainRest(chainId, chainRest string) string {
 }
 
 // DecodeProof decodes the proof of a data item from a byte array
-// encodedProofString is the hex string of the proof
+// encodedProofString is the base64 string of the proof
 // encoded in big endian
 // Structure:
 // - 2  bytes: poolId (uint16)
