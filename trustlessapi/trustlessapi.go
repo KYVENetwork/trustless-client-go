@@ -21,6 +21,10 @@ func Get(url string, chainRest string) ([]byte, error) {
 		return []byte{}, err
 	}
 
+	if proofHex == "" {
+		return rawResponse, nil
+	}
+
 	p, err := utils.DecodeProof(proofHex)
 	if err != nil {
 		return []byte{}, err
