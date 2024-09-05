@@ -102,6 +102,7 @@ func GetChainRest(chainId, chainRest string) string {
 // encodedProofString is the base64 string of the proof
 // encoded in big endian
 // Structure:
+// - 1  byte: version (uint8)
 // - 2  bytes: poolId (uint16)
 // - 8  bytes: bundleId (uint64)
 // - 16 bytes: chainId
@@ -119,34 +120,42 @@ func DecodeProof(encodedProofString string) (*types.Proof, error) {
 		return nil, err
 	}
 
+	if len(encodedProof) < 16 {
+		return nil, fmt.Errorf("encoded proof is too short")
+	}
+
 	proof := &types.Proof{}
 
-	proof.PoolId = int64(binary.BigEndian.Uint16(encodedProof[0:2]))
-	proof.BundleId = int64(binary.BigEndian.Uint64(encodedProof[2:10]))
+	version := encodedProof[0]
 
-	encodedProof = encodedProof[10:]
-	endIndex := bytes.IndexByte(encodedProof, 0)
-	if endIndex == -1 {
-		return nil, fmt.Errorf("invalid encoded proof, missing: chainId")
+	if version != 1 {
+		return nil, fmt.Errorf("invalid version")
 	}
-	proof.ChainId = string(bytes.TrimRight(encodedProof[:endIndex], "\x00"))
 
-	encodedProof = encodedProof[endIndex+1:]
-	endIndexKey := bytes.IndexByte(encodedProof, 0)
+	proof.PoolId = int64(binary.BigEndian.Uint16(encodedProof[1:3]))
+	proof.BundleId = int64(binary.BigEndian.Uint64(encodedProof[3:11]))
 
-	if endIndexKey == -1 {
-		return nil, fmt.Errorf("invalid encoded proof, missing: dataItemkey")
+	// Convert the byte slice to null-terminated strings
+	encodedProof = encodedProof[11:]
+	fields := []struct {
+		name  string
+		value *string
+	}{
+		{"chainId", &proof.ChainId},
+		{"dataItemKey", &proof.DataItemKey},
+		{"dataItemValueKey", &proof.DataItemValueKey},
 	}
-	proof.DataItemKey = string(bytes.TrimRight(encodedProof[:endIndexKey], "\x00"))
 
-	encodedProof = encodedProof[endIndexKey+1:]
-	endIndexValueKey := bytes.IndexByte(encodedProof, 0)
-	if endIndex == -1 {
-		return nil, fmt.Errorf("invalid encoded proof, missing: chainId")
+	for _, field := range fields {
+		endIndex := bytes.IndexByte(encodedProof, 0)
+		if endIndex == -1 {
+			return nil, fmt.Errorf("invalid encoded proof, missing: %s", field.name)
+		}
+		*field.value = string(encodedProof[:endIndex])
+		encodedProof = encodedProof[endIndex+1:]
 	}
-	proof.DataItemValueKey = string(bytes.TrimRight(encodedProof[:endIndexValueKey], "\x00"))
 
-	proofBytes := encodedProof[endIndexValueKey+1:]
+	proofBytes := encodedProof
 
 	for len(proofBytes) >= 33 {
 		merkleNode := types.MerkleNode{}
